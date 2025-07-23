@@ -1,0 +1,22 @@
+{
+  "name": "augment-monitor",
+  "version": "1.0.0",
+  "description": "Automated monitor and updater for Augment VS Code extension in Cursor",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node index.js --dry-run",
+    "install-cron": "./install-cron.sh"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "semver": "^7.5.4",
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": ["cursor", "vscode", "extension", "automation", "augment"],
+  "author": "Brandon Charleson",
+  "license": "MIT"
+} 
