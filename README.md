@@ -29,11 +29,34 @@ npm start
 ```
 
 ### 3. Setup Automated Monitoring
+
+#### Linux/macOS (Cron)
 ```bash
 # Install cron job (runs every 6 hours)
 chmod +x install-cron.sh
 ./install-cron.sh
 ```
+
+#### Windows (Scheduled Task)
+```powershell
+# Test the installation (WhatIf mode - no changes made)
+npm run test-task
+
+# Install Windows scheduled task (automatically requests UAC elevation)
+npm run install-task
+
+# Alternative schedules:
+npm run install-task-work    # Daily during work days at 9 AM
+npm run install-task-daily   # Daily at 9 AM
+
+# Check task status
+npm run task-status
+
+# Uninstall task (automatically requests UAC elevation)
+npm run uninstall-task
+```
+
+**Note:** The Windows scripts will automatically prompt for Administrator privileges via UAC when needed. Simply click "Yes" when prompted.
 
 ## Usage
 
@@ -141,6 +164,21 @@ curl -X POST https://marketplace.visualstudio.com/_apis/public/gallery/extension
 4. **"Installation failed"**
    - Ensure Cursor is not running during installation
    - Check file permissions in temp directory
+
+### Windows-Specific Issues
+
+1. **"Execution Policy" errors**
+   - Run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+   - Or use the npm scripts which bypass execution policy
+
+2. **"Access Denied" when creating scheduled task**
+   - Run PowerShell as Administrator
+   - Use: `npm run install-task` (requires admin PowerShell)
+
+3. **Task not running automatically**
+   - Check task status: `npm run task-status`
+   - Verify task settings: `Get-ScheduledTask -TaskName "AugmentMonitor" | Get-ScheduledTaskInfo`
+   - Check Windows Event Viewer for task scheduler errors
 
 ## File Structure
 

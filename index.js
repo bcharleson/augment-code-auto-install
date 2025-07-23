@@ -222,29 +222,35 @@ class AugmentMonitor {
   async downloadVsix(version) {
     try {
       this.log(`Downloading VSIX file for version ${version}...`);
-      
+
       if (this.isDryRun) {
         this.log('DRY RUN: Would download VSIX file', 'warning');
         return path.join(this.tempDir, `${this.extensionId}-${version}.vsix`);
       }
 
       const downloadUrl = `https://marketplace.visualstudio.com/_apis/public/gallery/publishers/${this.publisherId}/vsextensions/${this.extensionName}/${version}/vspackage`;
-      
-      const response = await fetch(downloadUrl);
-      
+
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Accept': 'application/octet-stream',
+          'User-Agent': 'VSCode/1.85.0 (Windows NT 10.0; Win64; x64)',
+          'Accept-Encoding': 'gzip, deflate, br'
+        }
+      });
+
       if (!response.ok) {
         throw new Error(`Download failed with status: ${response.status}`);
       }
 
       const fileName = `${this.extensionId}-${version}.vsix`;
       const filePath = path.join(this.tempDir, fileName);
-      
+
       const buffer = await response.buffer();
       fs.writeFileSync(filePath, buffer);
-      
+
       const fileSizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
       this.log(`Downloaded ${fileName} (${fileSizeMB} MB)`, 'success');
-      
+
       return filePath;
     } catch (error) {
       this.log(`Download failed: ${error.message}`, 'error');

@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node index.js",
     "test": "node index.js --dry-run",
-    "install-cron": "./install-cron.sh"
+    "install-cron": "./install-cron.sh",
+    "install-task": "powershell -ExecutionPolicy Bypass -File ./Install-WindowsTask.ps1",
+    "install-task-work": "powershell -ExecutionPolicy Bypass -File ./Install-WindowsTask.ps1 -Schedule WorkHours",
+    "install-task-daily": "powershell -ExecutionPolicy Bypass -File ./Install-WindowsTask.ps1 -Schedule Daily",
+    "test-task": "powershell -ExecutionPolicy Bypass -File ./Install-WindowsTask.ps1 -WhatIf",
+    "uninstall-task": "powershell -ExecutionPolicy Bypass -File ./Uninstall-WindowsTask.ps1",
+    "task-status": "powershell -Command \"Get-ScheduledTask -TaskName 'AugmentMonitor' -ErrorAction SilentlyContinue | Select-Object TaskName,State,LastRunTime,NextRunTime | Format-Table -AutoSize\""
   },
   "dependencies": {
     "node-fetch": "^2.7.0",
