@@ -19,14 +19,58 @@ Automated monitoring and updating system for the Augment VS Code extension in Cu
 npm install
 ```
 
-### 2. Test the Script
+### 2. Quick Test (Recommended First Step!)
 ```bash
-# Dry run to test without making changes
+# Test the script without making any changes (dry run)
 npm test
+```
 
-# Manual check for updates
+This will:
+- Check your current Augment extension version
+- Fetch the latest version from the marketplace
+- Show you if an update is available
+- Simulate the entire update process without actually making changes
+
+**Example Output:**
+```
+[2025-07-24T17:56:45.704Z] INFO: Starting Augment extension update check...
+[2025-07-24T17:56:45.902Z] INFO: Current version: 0.511.0
+[2025-07-24T17:56:46.093Z] INFO: Latest version: 0.513.0
+
+🚀 Augment Extension Update Available!
+──────────────────────────────────────────────────
+Current version: 0.511.0
+Latest version:  0.513.0
+──────────────────────────────────────────────────
+
+Would you like to download and install this update? (y/N): y
+[2025-07-24T17:56:54.717Z] SUCCESS: User approved update
+[2025-07-24T17:56:54.718Z] WARNING: DRY RUN: Would download VSIX file
+[2025-07-24T17:56:54.718Z] WARNING: DRY RUN: Would install extension
+[2025-07-24T17:56:54.718Z] WARNING: DRY RUN: Would verify installation
+
+✅ Update completed successfully!
+```
+
+### 3. Run the Actual Update
+```bash
+# Check for updates and install if approved
 npm start
 ```
+
+## Available Commands
+
+Here are the main commands you can use:
+
+| Command | What it does |
+|---------|-------------|
+| `npm test` | Test the script without making changes (safe to run) |
+| `npm start` | Run the actual update process |
+| `npm run install-cron` | Install automatic updates on macOS/Linux |
+| `npm run install-task` | Install automatic updates on Windows |
+| `npm run uninstall-task` | Remove automatic updates on Windows |
+
+**For most users**: Start with `npm test` to see if updates are available, then use `npm start` to actually install them.
 
 ### 3. Setup Automated Monitoring
 
