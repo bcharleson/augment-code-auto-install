@@ -19,6 +19,30 @@ Automated monitoring and updating system for the Augment VS Code extension in Cu
 npm install
 ```
 
+### Setting Up on Another Computer
+
+If you want to run this on another Mac (like a Mac mini):
+
+```bash
+# Clone the repository
+git clone https://github.com/bcharleson/augment-code-auto-install.git
+cd augment-code-auto-install
+
+# Install dependencies
+npm install
+
+# Test the setup
+npm test
+
+# Set up automatic updates
+npm run install-cron
+```
+
+**Requirements on the new computer:**
+- Node.js (version 14 or higher)
+- Cursor with CLI available
+- Git (for cloning)
+
 ### 2. Quick Test (Recommended First Step!)
 ```bash
 # Test the script without making any changes (dry run)
@@ -65,12 +89,60 @@ Here are the main commands you can use:
 | Command | What it does |
 |---------|-------------|
 | `npm test` | Test the script without making changes (safe to run) |
+| `npm test-setup` | Test if everything is configured correctly on this computer |
 | `npm start` | Run the actual update process |
 | `npm run install-cron` | Install automatic updates on macOS/Linux |
 | `npm run install-task` | Install automatic updates on Windows |
 | `npm run uninstall-task` | Remove automatic updates on Windows |
 
 **For most users**: Start with `npm test` to see if updates are available, then use `npm start` to actually install them.
+
+## Managing Automatic Updates
+
+### Stopping the Cron Job
+If you want to stop automatic updates:
+
+```bash
+# Stop installation while it's running
+Ctrl+C
+
+# Remove the cron job after installation
+crontab -l | grep -v "augment-monitor" | crontab -
+
+# Or edit cron jobs manually
+crontab -e
+```
+
+### What Happens When You Restart Your Computer?
+✅ **Good news!** Cron jobs are **persistent** and will continue working after restart:
+
+- The cron job remains installed and active
+- It will continue checking for updates every 6 hours
+- All settings and schedules are preserved
+- The script will run automatically in the background
+
+### Temporarily Disable (Instead of Removing)
+```bash
+# Edit cron jobs
+crontab -e
+
+# Add # at the beginning of the line to comment it out:
+# 0 */6 * * * /path/to/augment-monitor/index.js
+
+# To re-enable, just remove the #
+```
+
+### Verify It's Still Working
+```bash
+# Check if cron job is still there
+crontab -l
+
+# Check recent logs
+tail -f logs/cron.log
+
+# Test manually to make sure everything works
+npm test
+```
 
 ### 3. Setup Automated Monitoring
 
