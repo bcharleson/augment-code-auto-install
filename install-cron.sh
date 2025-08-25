@@ -22,9 +22,24 @@ if [ ! -f "$NODE_PATH" ]; then
     exit 1
 fi
 
-# Check if cursor is available
-if [ ! -f "$CURSOR_PATH" ]; then
-    echo "❌ Error: Cursor not found. Please install Cursor first."
+# Check if at least one supported IDE is available
+CURSOR_AVAILABLE=false
+VSCODE_AVAILABLE=false
+
+if [ -f "$CURSOR_PATH" ]; then
+    CURSOR_AVAILABLE=true
+    echo "✓ Cursor found at: $CURSOR_PATH"
+fi
+
+VSCODE_PATH=$(which code 2>/dev/null || echo "")
+if [ -n "$VSCODE_PATH" ]; then
+    VSCODE_AVAILABLE=true
+    echo "✓ VS Code found at: $VSCODE_PATH"
+fi
+
+if [ "$CURSOR_AVAILABLE" = false ] && [ "$VSCODE_AVAILABLE" = false ]; then
+    echo "❌ Error: No supported IDE found (Cursor or VS Code)"
+    echo "   Please install Cursor or VS Code first."
     exit 1
 fi
 
@@ -42,10 +57,22 @@ mkdir -p "$SCRIPT_DIR/logs"
 
 # Set up environment variables for cron
 ENV_SETUP="PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-ENV_SETUP="$ENV_SETUP\nCURSOR_PATH=$CURSOR_PATH"
+if [ "$CURSOR_AVAILABLE" = true ]; then
+    ENV_SETUP="$ENV_SETUP\nCURSOR_PATH=$CURSOR_PATH"
+fi
+if [ "$VSCODE_AVAILABLE" = true ]; then
+    ENV_SETUP="$ENV_SETUP\nVSCODE_PATH=$VSCODE_PATH"
+fi
 
 # Create cron entry with proper environment
-CRON_ENTRY="$CRON_SCHEDULE PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin CURSOR_PATH=$CURSOR_PATH $NODE_PATH $SCRIPT_DIR/index.js >> $SCRIPT_DIR/logs/cron.log 2>&1"
+CRON_ENTRY="$CRON_SCHEDULE PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+if [ "$CURSOR_AVAILABLE" = true ]; then
+    CRON_ENTRY="$CRON_ENTRY CURSOR_PATH=$CURSOR_PATH"
+fi
+if [ "$VSCODE_AVAILABLE" = true ]; then
+    CRON_ENTRY="$CRON_ENTRY VSCODE_PATH=$VSCODE_PATH"
+fi
+CRON_ENTRY="$CRON_ENTRY $NODE_PATH $SCRIPT_DIR/index.js >> $SCRIPT_DIR/logs/cron.log 2>&1"
 
 # Check if cron entry already exists
 if crontab -l 2>/dev/null | grep -q "$SCRIPT_DIR/index.js"; then
@@ -61,7 +88,12 @@ echo "✅ Cron job installed successfully!"
 echo ""
 echo "Schedule: Every 6 hours"
 echo "Logs: $SCRIPT_DIR/logs/cron.log"
-echo "Cursor path: $CURSOR_PATH"
+if [ "$CURSOR_AVAILABLE" = true ]; then
+    echo "Cursor path: $CURSOR_PATH"
+fi
+if [ "$VSCODE_AVAILABLE" = true ]; then
+    echo "VS Code path: $VSCODE_PATH"
+fi
 echo ""
 echo "To view current cron jobs: crontab -l"
 echo "To remove this cron job: crontab -l | grep -v '$SCRIPT_DIR/index.js' | crontab -"

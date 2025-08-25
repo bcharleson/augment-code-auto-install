@@ -1,13 +1,23 @@
 # Augment Extension Monitor
 
-Automated monitoring and updating system for the Augment VS Code extension in Cursor.
+Automated monitoring and updating system for the Augment VS Code extension in **Cursor** and **VS Code**.
+
+## 🆕 Multi-IDE Support
+
+This script now supports both **Cursor** and **VS Code**! It will automatically:
+- Detect which IDEs you have installed
+- Check for the Augment extension in all available IDEs
+- Install updates in your preferred IDE (or all IDEs if configured)
+- Work seamlessly whether you use Cursor, VS Code, or both
 
 ## Features
 
 - 🔍 **Automatic Version Detection** - Monitors VS Code Marketplace for new releases
 - 👤 **Human-in-the-Loop** - Always prompts for user approval before updating
 - 📦 **Automated Download** - Downloads VSIX files from marketplace
-- ⚡ **CLI Installation** - Uses Cursor CLI for seamless installation
+- ⚡ **Multi-IDE Support** - Works with Cursor and VS Code automatically
+- 🔧 **Smart Detection** - Automatically finds your installed IDEs
+- 📦 **Flexible Installation** - Install in one IDE or all available IDEs
 - ✅ **Verification** - Confirms successful installation before cleanup
 - 🧹 **Auto Cleanup** - Removes temporary VSIX files after installation
 - 📅 **Cron Scheduling** - Runs automatically in background
@@ -40,10 +50,18 @@ npm run install-cron
 
 **Requirements on the new computer:**
 - Node.js (version 14 or higher)
-- Cursor with CLI available
+- Cursor or VS Code with CLI available (or both!)
 - Git (for cloning)
 
-### 2. Quick Test (Recommended First Step!)
+### 2. Test IDE Detection (New!)
+```bash
+# Test which IDEs are detected on your system
+npm run test-ide
+```
+
+This will show you which IDEs (Cursor/VS Code) are available and if the Augment extension is installed in any of them.
+
+### 3. Quick Test (Recommended First Step!)
 ```bash
 # Test the script without making any changes (dry run)
 npm test
@@ -88,8 +106,8 @@ Here are the main commands you can use:
 
 | Command | What it does |
 |---------|-------------|
+| `npm run test-ide` | Test which IDEs are detected and if Augment is installed |
 | `npm test` | Test the script without making changes (safe to run) |
-| `npm test-setup` | Test if everything is configured correctly on this computer |
 | `npm start` | Run the actual update process |
 | `npm run install-cron` | Install automatic updates on macOS/Linux |
 | `npm run install-task` | Install automatic updates on Windows |

@@ -8,6 +8,179 @@ const readline = require('readline');
 const semver = require('semver');
 const chalk = require('chalk');
 
+class IDEManager {
+  constructor() {
+    this.supportedIDEs = {
+      cursor: {
+        name: 'Cursor',
+        commands: {
+          listExtensions: '--list-extensions --show-versions',
+          installExtension: '--install-extension',
+          version: '--version'
+        },
+        envVar: 'CURSOR_PATH',
+        priority: 1
+      },
+      vscode: {
+        name: 'VS Code',
+        commands: {
+          listExtensions: '--list-extensions',
+          installExtension: '--install-extension',
+          version: '--version'
+        },
+        envVar: 'VSCODE_PATH',
+        priority: 2
+      }
+    };
+    
+    this.detectedIDEs = [];
+    this.currentIDE = null;
+  }
+
+  detectAvailableIDEs() {
+    this.log('Detecting available IDEs...');
+    const available = [];
+    
+    for (const [ide, config] of Object.entries(this.supportedIDEs)) {
+      try {
+        const command = process.env[config.envVar] || ide;
+        execSync(`${command} ${config.commands.version}`, { 
+          stdio: 'ignore',
+          timeout: 5000 
+        });
+        available.push({ 
+          ide, 
+          config, 
+          command,
+          priority: config.priority 
+        });
+        this.log(`✓ ${config.name} detected`, 'success');
+      } catch (error) {
+        this.log(`✗ ${config.name} not available`, 'warning');
+      }
+    }
+    
+    // Sort by priority (lower number = higher priority)
+    available.sort((a, b) => a.priority - b.priority);
+    this.detectedIDEs = available;
+    
+    if (available.length === 0) {
+      throw new Error('No supported IDE found (Cursor or VS Code)');
+    }
+    
+    this.log(`Found ${available.length} IDE(s): ${available.map(ide => ide.config.name).join(', ')}`, 'info');
+    return available;
+  }
+
+  async findExtensionInIDEs(extensionId) {
+    for (const { ide, config, command } of this.detectedIDEs) {
+      try {
+        this.log(`Checking ${config.name} for Augment extension...`);
+        
+        const output = execSync(`${command} ${config.commands.listExtensions}`, {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          timeout: 10000
+        });
+        
+        // Handle different output formats
+        let match;
+        if (ide === 'cursor') {
+          // Cursor format: augment.vscode-augment@1.2.3
+          match = output.match(/augment\.vscode-augment@(\d+\.\d+\.\d+)/);
+        } else {
+          // VS Code format: augment.vscode-augment
+          if (output.includes('augment.vscode-augment')) {
+            // For VS Code, we need to get version differently since --list-extensions doesn't show versions
+            // We'll try to get it from the extension folder
+            match = await this.getVSCodeExtensionVersion(extensionId);
+          }
+        }
+        
+        if (match) {
+          this.currentIDE = { ide, config, command };
+          const version = ide === 'cursor' ? match[1] : match;
+          this.log(`Found in ${config.name}: ${version}`, 'success');
+          return version;
+        }
+      } catch (error) {
+        this.log(`${config.name} check failed: ${error.message}`, 'warning');
+      }
+    }
+    
+    this.log('Augment extension not found in any IDE', 'warning');
+    return null;
+  }
+
+  async getVSCodeExtensionVersion(extensionId) {
+    try {
+      // Try to get version from VS Code extension folder
+      const homeDir = process.env.HOME || process.env.USERPROFILE;
+      const vscodeExtensionsPath = path.join(homeDir, '.vscode', 'extensions');
+      
+      if (fs.existsSync(vscodeExtensionsPath)) {
+        const extensions = fs.readdirSync(vscodeExtensionsPath);
+        const augmentFolder = extensions.find(folder => folder.startsWith('augment.vscode-augment-'));
+        
+        if (augmentFolder) {
+          const version = augmentFolder.replace('augment.vscode-augment-', '');
+          if (semver.valid(version)) {
+            return version;
+          }
+        }
+      }
+    } catch (error) {
+      this.log(`Failed to get VS Code extension version: ${error.message}`, 'warning');
+    }
+    
+    return null;
+  }
+
+  async installExtensionInCurrentIDE(vsixPath) {
+    if (!this.currentIDE) {
+      throw new Error('No IDE selected for installation');
+    }
+    
+    const { config, command } = this.currentIDE;
+    this.log(`Installing extension via ${config.name} CLI...`);
+    
+    execSync(`${command} ${config.commands.installExtension} "${vsixPath}"`, {
+      stdio: 'inherit',
+      timeout: 30000
+    });
+    
+    this.log(`Extension installed successfully in ${config.name}`, 'success');
+  }
+
+  async installExtensionInAllIDEs(vsixPath) {
+    this.log('Installing extension in all available IDEs...');
+    
+    for (const { ide, config, command } of this.detectedIDEs) {
+      try {
+        this.log(`Installing in ${config.name}...`);
+        execSync(`${command} ${config.commands.installExtension} "${vsixPath}"`, {
+          stdio: 'inherit',
+          timeout: 30000
+        });
+        this.log(`✓ Installed in ${config.name}`, 'success');
+      } catch (error) {
+        this.log(`✗ Failed to install in ${config.name}: ${error.message}`, 'error');
+      }
+    }
+  }
+
+  log(message, level = 'info') {
+    const colors = {
+      info: chalk.blue,
+      success: chalk.green,
+      warning: chalk.yellow,
+      error: chalk.red
+    };
+    
+    console.log(`${colors[level](`[IDE]`)} ${message}`);
+  }
+}
+
 class AugmentMonitor {
   constructor() {
     this.extensionId = 'augment.vscode-augment';
@@ -16,6 +189,9 @@ class AugmentMonitor {
     this.tempDir = path.join(__dirname, 'temp');
     this.isDryRun = process.argv.includes('--dry-run');
     this.isCronMode = !process.stdout.isTTY; // Detect if running from cron
+    
+    // Initialize IDE manager
+    this.ideManager = new IDEManager();
     
     // Ensure temp directory exists
     if (!fs.existsSync(this.tempDir)) {
@@ -39,22 +215,17 @@ class AugmentMonitor {
     try {
       this.log('Checking current Augment version...');
       
-      // Use CURSOR_PATH environment variable if available, otherwise fall back to 'cursor'
-      const cursorCommand = process.env.CURSOR_PATH || 'cursor';
+      // Detect available IDEs first
+      this.ideManager.detectAvailableIDEs();
       
-      const output = execSync(`${cursorCommand} --list-extensions --show-versions`, { 
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      });
-      
-      const match = output.match(/augment\.vscode-augment@(\d+\.\d+\.\d+)/);
-      const version = match ? match[1] : null;
+      // Find extension in any available IDE
+      const version = await this.ideManager.findExtensionInIDEs(this.extensionId);
       
       if (version) {
         this.log(`Current version: ${version}`, 'info');
         return version;
       } else {
-        this.log('Augment extension not found in Cursor', 'warning');
+        this.log('Augment extension not found in any IDE', 'warning');
         return null;
       }
     } catch (error) {
@@ -264,19 +435,19 @@ class AugmentMonitor {
 
   async installExtension(vsixPath) {
     try {
-      this.log('Installing extension via Cursor CLI...');
-      
       if (this.isDryRun) {
         this.log('DRY RUN: Would install extension', 'warning');
         return true;
       }
 
-      // Use CURSOR_PATH environment variable if available, otherwise fall back to 'cursor'
-      const cursorCommand = process.env.CURSOR_PATH || 'cursor';
-
-      execSync(`${cursorCommand} --install-extension "${vsixPath}"`, {
-        stdio: 'inherit'
-      });
+      // Check if we should install in all IDEs or just the current one
+      const installInAll = process.argv.includes('--install-all');
+      
+      if (installInAll && this.ideManager.detectedIDEs.length > 1) {
+        await this.ideManager.installExtensionInAllIDEs(vsixPath);
+      } else {
+        await this.ideManager.installExtensionInCurrentIDE(vsixPath);
+      }
       
       this.log('Extension installation completed', 'success');
       return true;
@@ -375,7 +546,8 @@ class AugmentMonitor {
         console.log('\n' + chalk.green('✅ Update completed successfully!'));
         console.log(chalk.gray('─'.repeat(40)));
         console.log(`${chalk.green('●')} Downloaded version ${latestVersion}`);
-        console.log(`${chalk.green('●')} Installed via Cursor CLI`);
+        const ideName = this.ideManager.currentIDE ? this.ideManager.currentIDE.config.name : 'IDE';
+        console.log(`${chalk.green('●')} Installed via ${ideName} CLI`);
         console.log(`${chalk.green('●')} Installation verified`);
         console.log(`${chalk.green('●')} Temporary files cleaned up`);
         console.log('\nYou may need to reload Cursor for all changes to take effect.');

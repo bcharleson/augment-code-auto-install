@@ -1,23 +1,17 @@
 {
-  "checkInterval": "0 */6 * * *",
-  "extensionId": "augment.vscode-augment",
-  "publisherId": "augment",
-  "extensionName": "vscode-augment",
-  "notificationMethod": "cli",
-  "autoDownload": false,
-  "backupCurrentVersion": true,
-  "logLevel": "info",
-  "tempDirectory": "./temp",
-  "maxRetries": 3,
-  "retryDelay": 5000,
-  "schedules": {
-    "workHours": "0 9-17/2 * * 1-5",
-    "daily": "0 9 * * *",
-    "frequent": "0 */3 * * *"
+  "idePreferences": {
+    "priority": ["cursor", "vscode"],
+    "installInAllIDEs": false,
+    "preferredIDE": "auto"
   },
-  "notifications": {
-    "success": true,
-    "failure": true,
-    "noUpdate": false
+  "updateSettings": {
+    "checkInterval": "6h",
+    "autoInstall": false,
+    "notifyOnUpdate": true
+  },
+  "logging": {
+    "level": "info",
+    "saveToFile": true,
+    "maxLogFiles": 10
   }
 } 
