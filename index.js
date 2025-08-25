@@ -38,7 +38,11 @@ class AugmentMonitor {
   async getCurrentVersion() {
     try {
       this.log('Checking current Augment version...');
-      const output = execSync('cursor --list-extensions --show-versions', { 
+      
+      // Use CURSOR_PATH environment variable if available, otherwise fall back to 'cursor'
+      const cursorCommand = process.env.CURSOR_PATH || 'cursor';
+      
+      const output = execSync(`${cursorCommand} --list-extensions --show-versions`, { 
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore']
       });
@@ -267,7 +271,10 @@ class AugmentMonitor {
         return true;
       }
 
-      execSync(`cursor --install-extension "${vsixPath}"`, {
+      // Use CURSOR_PATH environment variable if available, otherwise fall back to 'cursor'
+      const cursorCommand = process.env.CURSOR_PATH || 'cursor';
+
+      execSync(`${cursorCommand} --install-extension "${vsixPath}"`, {
         stdio: 'inherit'
       });
       
